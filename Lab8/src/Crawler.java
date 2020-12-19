@@ -1,0 +1,51 @@
+import java.net.MalformedURLException;
+import java.util.LinkedList;
+import java.net.URL;
+// Основной класс программы
+public class Crawler {
+        /**
+         * Это основной метод класса.
+         * Он обеспечивает:
+         * 1) Инициализация пула адресов
+         * 2) Формирования корневого элемента на основе сайта, введённого пользователем;
+         * 2) Создание потоков в которых будут обрабатываться адреса.
+         * 3) Ожидание завершения работы потоков.
+         * 4) Вывод результирующего списка на экран.
+         */
+        public static void crawl(String startURL, int maxDepth, int numThreads)
+                throws MalformedURLException {
+
+            //Инициализируем пул адресов
+            UrlPool pool = new UrlPool(maxDepth);
+            //Формируем корневой элемент(глубина 0) на основе введённых пользователем данных...
+            URL rootURL = new URL(startURL);
+            URLDepthPair urlPair = new URLDepthPair(rootURL, 0);
+            //... и добавляем в пул
+            pool.addPair(urlPair);
+
+            // Запускаем потоки. Количество может задаваться  пользователем. 1 - по умолчанию.
+            for (int i = 0; i < numThreads; i++) {
+                //передаём пул адресов и id нужен для вывода в консоль в каждый созданный поток
+                CrawlerTask c = new CrawlerTask(i+1,pool);
+                Thread t = new Thread(c);
+                t.start();
+            }
+
+            // Ожидаем завершения работы всех потоков
+            while (pool.getWaitCount() != numThreads) {
+                try {
+                    Thread.sleep(100); // 0.1 second
+                } catch (InterruptedException ie) {
+                    System.out.println("Some thing went wrong!");
+                }
+            }
+            // Закончили осмотр - выводим результаты в консоль
+            System.out.println( "\n" + "Result list of sites: ");
+            // формат вывода: URL: https://habr.com/ru/about/, Depth: 0
+            LinkedList<URLDepthPair> foundUrls = pool.allSitesSeen();
+            for (URLDepthPair pair : foundUrls) {
+                System.out.println(pair.toString());
+            }
+        }
+
+}
